@@ -1,45 +1,40 @@
 #!/usr/bin/python3
-"""This module defines the DBStorage class"""
+"""This module defines the DBStorage class for hbnb clone"""
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from os import getenv
 from models.base_model import Base
-from models.city import City
-from models.state import State
-
 
 class DBStorage:
-    """This class manages storage of hbnb models in a database"""
-
+    """This class manages storage of hbnb models in MySQL database"""
     __engine = None
     __session = None
 
     def __init__(self):
-        """Creates a new instance of DBStorage"""
-        self.__engine = create_engine('mysql+mysqldb://{}:{}@{}/{}'.
-                                      format(getenv('HBNB_MYSQL_USER'),
-                                             getenv('HBNB_MYSQL_PWD'),
-                                             getenv('HBNB_MYSQL_HOST'),
-                                             getenv('HBNB_MYSQL_DB')),
-                                      pool_pre_ping=True)
+        """Creates the MySQL database engine"""
+        user = getenv('HBNB_MYSQL_USER')
+        pwd = getenv('HBNB_MYSQL_PWD')
+        host = getenv('HBNB_MYSQL_HOST')
+        db = getenv('HBNB_MYSQL_DB')
+        self.__engine = create_engine(
+            'mysql+mysqldb://{}:{}@{}/{}'.
+            format(user, pwd, host, db), pool_pre_ping=True)
         if getenv('HBNB_ENV') == 'test':
             Base.metadata.drop_all(self.__engine)
 
     def all(self, cls=None):
-        """Queries all objects depending on the class name"""
-        obj_dict = {}
+        """Queries on the current database session"""
+        from models import classes
+        objs = {}
         if cls:
-            objects = self.__session.query(eval(cls)).all()
+            objects = self.__session.query(classes[cls]).all()
         else:
-            objects = []
-            for c in [City, State]:
-                objects.extend(self.__session.query(c).all())
-
-        for obj in objects:
-            key = "{}.{}".format(type(obj).__name__, obj.id)
-            obj_dict[key] = obj
-
-        return obj_dict
+            for class_ in classes.values():
+                objects = self.__session.query(class_).all()
+                for obj in objects:
+                    key = "{}.{}".format(type(obj).__name__, obj.id)
+                    objs[key] = obj
+        return objs
 
     def new(self, obj):
         """Adds the object to the current database session"""
@@ -55,9 +50,8 @@ class DBStorage:
             self.__session.delete(obj)
 
     def reload(self):
-        """Creates all tables in the database and creates the current database session"""
+        """Creates all tables in the database and creates a new session"""
         Base.metadata.create_all(self.__engine)
-        session_factory = sessionmaker(
-            bind=self.__engine, expire_on_commit=False)
-        Session = scoped_session(session_factory)
+        Session = scoped_session(sessionmaker(
+            bind=self.__engine, expire_on_commit=False))
         self.__session = Session()
