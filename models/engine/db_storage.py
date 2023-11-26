@@ -35,7 +35,7 @@ class DBStorage:
                 db_dict[key] = obj
         else:
             for cls_name, cls_type in obj_cls.items():
-                if cls_name != "BaseModel":
+                if cls_name != "BaseModel" and cls_name != "":
                     query = self.__session.query(cls_type).all()
                     for obj in query:
                         key = "{}.{}".format(obj.__class__.__name__, obj.id)
