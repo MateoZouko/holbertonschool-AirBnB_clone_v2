@@ -14,6 +14,7 @@ class BaseModel:
     updated_at = Column(DateTime, default=datetime.utcnow(), nullable=False)
 
     def __init__(self, *args, **kwargs):
+        from models import storage
         """Instantiates a new model"""
         if not kwargs:
             self.id = str(uuid.uuid4())
